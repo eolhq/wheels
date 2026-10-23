@@ -4,6 +4,15 @@ Linux x86_64 wheels for packages that PyPI has no wheel for yet on a new
 CPython. Each wheel is built here once and attached to a release, and every
 eolhq project reuses it instead of compiling it in its own Dockerfile.
 
+## Public PyPI releases only
+
+This repository and its releases are public. Only an unmodified sdist of a
+public PyPI release is ever built here: never eolhq code or other first-party
+software, never a fork or patched copy, and never anything from a git URL, a
+local path or a private index. The workflow takes exact `name==version` pins
+only, and fails a requirement PyPI does not have. A package we wrote that needs
+a wheel is built in its own project's pipeline.
+
 ## What gets built
 
 - `packages.txt` lists the requirements, each pinned with `==`.
@@ -24,10 +33,12 @@ release is **never replaced**. Consumers pin each wheel's hash in `uv.lock`, so
 rebuilding one would break every lockfile that holds it. To change a wheel,
 bump the requirement's version instead.
 
-Download them with:
+Projects point uv straight at the download URL, Linux x86_64 only, so no
+fetch step or token is needed in CI, Docker builds or Renovate:
 
-```sh
-gh release download cp315 --repo eolhq/wheels --dir wheels
+```toml
+[tool.uv.sources]
+pyyaml = [{ url = "https://github.com/eolhq/wheels/releases/download/cp315/<filename>.whl", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" }]
 ```
 
 ## Retiring a package
