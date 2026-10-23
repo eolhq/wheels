@@ -1,0 +1,114 @@
+name: Build wheels
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - packages.txt
+      - python-versions.txt
+      - scripts/build.sh
+      - .github/workflows/build.yml
+  workflow_dispatch:
+    inputs:
+      requirement:
+        description: 'One pinned requirement, e.g. "cbor2==6.1.4". Empty builds everything in packages.txt.'
+        required: false
+        type: string
+        default: ''
+      python:
+        description: 'Python version, e.g. "3.15". Empty builds every version in python-versions.txt.'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-wheels
+  cancel-in-progress: false
+
+env:
+  # renovate: datasource=docker depName=quay.io/pypa/manylinux_2_28_x86_64
+  MANYLINUX_IMAGE: quay.io/pypa/manylinux_2_28_x86_64:latest@sha256:076b19ef6e698f28649fa817c49d14443201e01da85240e8e52f93e8daa49bff
+
+jobs:
+  build:
+    runs-on: np-amd64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Resolve what to build
+        id: plan
+        env:
+          INPUT_REQUIREMENT: ${{ inputs.requirement }}
+          INPUT_PYTHON: ${{ inputs.python }}
+        run: |
+          if [[ -n $INPUT_REQUIREMENT ]]; then
+            requirements=$INPUT_REQUIREMENT
+          else
+            requirements=$(grep -Ev '^\s*(#|$)' packages.txt)
+          fi
+          if [[ -n $INPUT_PYTHON ]]; then
+            pythons=$INPUT_PYTHON
+          else
+            pythons=$(grep -Ev '^\s*(#|$)' python-versions.txt)
+          fi
+          # Inputs reach a shell and a release name, so only exact pins and
+          # plain versions get through.
+          while read -r req; do
+            [[ $req =~ ^[A-Za-z0-9._-]+==[A-Za-z0-9.!+-]+$ ]] || { echo "not an exact pin: $req" >&2; exit 1; }
+          done <<< "$requirements"
+          while read -r py; do
+            [[ $py =~ ^3\.[0-9]+$ ]] || { echo "not a Python version: $py" >&2; exit 1; }
+          done <<< "$pythons"
+          {
+            echo "requirements=$(tr '\n' ' ' <<< "$requirements")"
+            echo "pythons=$(tr '\n' ' ' <<< "$pythons")"
+          } >> "$GITHUB_OUTPUT"
+
+      # `docker run`, not a job container: the dind sidecar shares only the
+      # work volume, and it can lag job start-up.
+      - name: Wait for Docker daemon (dind sidecar)
+        run: |
+          # shellcheck disable=SC2034  # $i is the retry counter, unused by design
+          for i in $(seq 1 30); do docker info > /dev/null 2>&1 && exit 0; sleep 2; done
+          echo "Docker daemon never became ready"; exit 1
+
+      - name: Build
+        env:
+          REQUIREMENTS: ${{ steps.plan.outputs.requirements }}
+          PYTHONS: ${{ steps.plan.outputs.pythons }}
+        run: |
+          for py in $PYTHONS; do
+            # shellcheck disable=SC2086  # one argument per requirement
+            docker run --rm -v "$GITHUB_WORKSPACE":/work -w /work "$MANYLINUX_IMAGE" \
+              bash scripts/build.sh "$py" "dist/cp${py/./}" $REQUIREMENTS
+          done
+          docker run --rm -v "$GITHUB_WORKSPACE":/work "$MANYLINUX_IMAGE" chown -R "$(id -u):$(id -g)" /work/dist
+
+      # One release per CPython tag. Consumers pin each wheel by hash in
+      # uv.lock, so a file already on the release is never replaced: a rebuild
+      # produces different bytes and would break every lockfile that has it.
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for dir in dist/*/; do
+            tag=$(basename "$dir")
+            if ! gh release view "$tag" > /dev/null 2>&1; then
+              gh release create "$tag" --title "$tag wheels" \
+                --notes "manylinux_2_28 x86_64 wheels for $tag. Files are added, never replaced."
+            fi
+            existing=$(gh release view "$tag" --json assets -q '.assets[].name')
+            for wheel in "$dir"*.whl; do
+              name=$(basename "$wheel")
+              if grep -qxF "$name" <<< "$existing"; then
+                echo "skip $name: already on $tag"
+              else
+                gh release upload "$tag" "$wheel"
+                echo "uploaded $name to $tag"
+              fi
+            done
+          done

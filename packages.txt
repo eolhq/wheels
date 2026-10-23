@@ -1,0 +1,13 @@
+# One requirement per line, pinned with ==. A push to main that changes this
+# file builds every entry for each Python in python-versions.txt; wheels that
+# are already on the release are skipped, never replaced.
+#
+# Remove an entry once PyPI publishes a manylinux wheel for it on every Python
+# listed, and re-lock the consumers so they take PyPI's wheel instead.
+
+# end.dev, via webauthn. The sdist needs a Rust compiler.
+cbor2==6.1.4
+# end.dev
+pyyaml==6.0.3
+# end.dev, via wagtail
+telepath==0.3.1
