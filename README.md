@@ -32,6 +32,20 @@ gh release download cp315 --repo eolhq/wheels --dir wheels
 
 ## Retiring a package
 
-Once PyPI publishes a manylinux wheel for a package on every Python listed,
-remove it from `packages.txt`. Then re-lock the consumers so they take PyPI's
-wheel.
+Before building, the workflow asks PyPI whether it already has a wheel that
+installs on manylinux x86_64 for every Python listed. A pure-Python
+`py3x-none-any` wheel or a compatible `abi3` wheel counts. Requirements that
+pass are skipped, and one Discord message lists them.
+
+The same check also runs every Monday on a schedule, because PyPI adding a
+wheel changes nothing in this repo. Scheduled runs only check; they never
+build.
+
+When the notice comes:
+
+1. Remove the entry from `packages.txt`.
+2. In each project that uses it, delete the package's `[tool.uv.sources]`
+   line and re-lock.
+
+`uv.lock` pins our wheel's hash, so a project keeps installing our wheel until
+it is re-locked.

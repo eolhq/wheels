@@ -7,7 +7,12 @@ on:
       - packages.txt
       - python-versions.txt
       - scripts/build.sh
+      - scripts/pypi_check.py
       - .github/workflows/build.yml
+  # PyPI gaining a wheel changes nothing in this repo, so only a schedule
+  # notices it. Scheduled runs check and notify; they never build.
+  schedule:
+    - cron: '0 13 * * 1'
   workflow_dispatch:
     inputs:
       requirement:
@@ -68,17 +73,29 @@ jobs:
             echo "pythons=$(tr '\n' ' ' <<< "$pythons")"
           } >> "$GITHUB_OUTPUT"
 
+      # Skips anything PyPI already has a wheel for on every Python built, and
+      # posts to Discord so the entry and its consumers' sources get retired.
+      - name: Check PyPI
+        id: pypi
+        env:
+          REQUIREMENTS: ${{ steps.plan.outputs.requirements }}
+          PYTHONS: ${{ steps.plan.outputs.pythons }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python3 scripts/pypi_check.py
+
       # `docker run`, not a job container: the dind sidecar shares only the
       # work volume, and it can lag job start-up.
       - name: Wait for Docker daemon (dind sidecar)
+        if: github.event_name != 'schedule' && steps.pypi.outputs.build != ''
         run: |
           # shellcheck disable=SC2034  # $i is the retry counter, unused by design
           for i in $(seq 1 30); do docker info > /dev/null 2>&1 && exit 0; sleep 2; done
           echo "Docker daemon never became ready"; exit 1
 
       - name: Build
+        if: github.event_name != 'schedule' && steps.pypi.outputs.build != ''
         env:
-          REQUIREMENTS: ${{ steps.plan.outputs.requirements }}
+          REQUIREMENTS: ${{ steps.pypi.outputs.build }}
           PYTHONS: ${{ steps.plan.outputs.pythons }}
         run: |
           for py in $PYTHONS; do
@@ -92,6 +109,7 @@ jobs:
       # uv.lock, so a file already on the release is never replaced: a rebuild
       # produces different bytes and would break every lockfile that has it.
       - name: Publish
+        if: github.event_name != 'schedule' && steps.pypi.outputs.build != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
