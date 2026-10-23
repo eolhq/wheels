@@ -5,9 +5,6 @@
 # Remove an entry once PyPI publishes a manylinux wheel for it on every Python
 # listed, and re-lock the consumers so they take PyPI's wheel instead.
 
-# end.dev, via webauthn. The sdist needs a Rust compiler.
-cbor2==6.1.4
-# end.dev, odin
+# end.dev, odin and unfresh, via drf-spectacular, kubernetes-asyncio and bandit.
+# Built against libyaml for the C loader.
 pyyaml==6.0.3
-# odin, via kubernetes-asyncio and py-cord. The sdist needs a C compiler.
-aiohttp==3.14.3

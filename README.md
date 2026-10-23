@@ -22,7 +22,8 @@ A push to `main` that changes either file builds every requirement for every
 Python. To build a single package, run the **Build wheels** workflow by hand
 with a `requirement` (and optionally a `python`).
 
-Builds run on `np-amd64` inside `quay.io/pypa/manylinux_2_28_x86_64`. Rust is
+Builds run on GitHub-hosted `ubuntu-latest` (never the self-hosted runners,
+since the repo is public) inside `quay.io/pypa/manylinux_2_28_x86_64`. Rust is
 installed for sdists that need it, and compiled wheels are tagged by
 `auditwheel repair`.
 

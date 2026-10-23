@@ -39,7 +39,9 @@ env:
 
 jobs:
   build:
-    runs-on: np-amd64
+    # A public repo: GitHub-hosted, so nothing a public workflow runs ever reaches
+    # the self-hosted np-amd64 runners inside the homelab.
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -82,15 +84,6 @@ jobs:
           PYTHONS: ${{ steps.plan.outputs.pythons }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: python3 scripts/pypi_check.py
-
-      # `docker run`, not a job container: the dind sidecar shares only the
-      # work volume, and it can lag job start-up.
-      - name: Wait for Docker daemon (dind sidecar)
-        if: github.event_name != 'schedule' && steps.pypi.outputs.build != ''
-        run: |
-          # shellcheck disable=SC2034  # $i is the retry counter, unused by design
-          for i in $(seq 1 30); do docker info > /dev/null 2>&1 && exit 0; sleep 2; done
-          echo "Docker daemon never became ready"; exit 1
 
       - name: Build
         if: github.event_name != 'schedule' && steps.pypi.outputs.build != ''
