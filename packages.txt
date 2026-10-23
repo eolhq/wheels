@@ -7,7 +7,9 @@
 
 # end.dev, via webauthn. The sdist needs a Rust compiler.
 cbor2==6.1.4
-# end.dev
+# end.dev, odin
 pyyaml==6.0.3
+# odin, via kubernetes-asyncio and py-cord. The sdist needs a C compiler.
+aiohttp==3.14.3
 # end.dev, via wagtail
 telepath==0.3.1

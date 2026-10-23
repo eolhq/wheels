@@ -22,6 +22,12 @@ if ! command -v cargo >/dev/null; then
 	. "$HOME/.cargo/env"
 fi
 
+# Headers for optional C extensions that otherwise fall back to pure Python
+# without failing: pyyaml builds without libyaml and is then much slower.
+# auditwheel refuses a "platform" wheel with no compiled code, so a missing
+# header fails the run rather than publishing the slow fallback for good.
+dnf install -y -q libyaml-devel || dnf install -y -q --enablerepo=powertools libyaml-devel
+
 work=$(mktemp -d)
 mkdir -p "$out"
 for req in "$@"; do
