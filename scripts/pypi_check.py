@@ -33,9 +33,11 @@ def serves(filename, python_version):
     if tags is None:
         return False
     py, abi, platform = tags
-    if py.startswith("py3") and abi == "none" and platform == "any":
+    # Each field can be a compressed tag set: py2.py3, manylinux_2_17_x86_64.manylinux2014_x86_64.
+    linux = any(p.startswith("manylinux") and p.endswith("x86_64") for p in platform.split("."))
+    if abi == "none" and (platform == "any" or linux) and any(t.startswith("py3") for t in py.split(".")):
         return True
-    if not any(p.startswith("manylinux") and p.endswith("x86_64") for p in platform.split(".")):
+    if not linux:
         return False
     target = int(python_version.split(".")[1])
     for tag in py.split("."):
