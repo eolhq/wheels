@@ -8,3 +8,6 @@
 # end.dev, odin and unfresh, via drf-spectacular, kubernetes-asyncio and bandit.
 # Built against libyaml for the C loader.
 pyyaml==6.0.3
+
+# dm-watch, via discord.py-self. Pure Python but sdist-only on PyPI.
+discord-protos==0.0.2
