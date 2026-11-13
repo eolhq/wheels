@@ -8,3 +8,8 @@
 # end.dev, odin and unfresh, via drf-spectacular, kubernetes-asyncio and bandit.
 # Built against libyaml for the C loader.
 pyyaml==6.0.3
+
+# hamarr, for its move to Python 3.15: PyPI has no cp315 wheel for either.
+# lz4 is UnityPy's dependency; hamarr lists it directly so uv applies the source.
+lz4==4.4.5
+UnityPy==1.25.4
