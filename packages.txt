@@ -11,3 +11,8 @@ pyyaml==6.0.3
 
 # dm-watch, via discord.py-self. Pure Python but sdist-only on PyPI.
 discord-protos==0.0.2
+
+# hamarr, for its move to Python 3.15: PyPI has no cp315 wheel for either.
+# lz4 is UnityPy's dependency; hamarr lists it directly so uv applies the source.
+lz4==4.4.5
+UnityPy==1.25.4
