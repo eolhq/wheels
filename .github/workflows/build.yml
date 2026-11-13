@@ -35,7 +35,7 @@ concurrency:
 
 env:
   # renovate: datasource=docker depName=quay.io/pypa/manylinux_2_28_x86_64
-  MANYLINUX_IMAGE: quay.io/pypa/manylinux_2_28_x86_64:latest@sha256:076b19ef6e698f28649fa817c49d14443201e01da85240e8e52f93e8daa49bff
+  MANYLINUX_IMAGE: quay.io/pypa/manylinux_2_28_x86_64:latest@sha256:a57da7c5fcbdc2df58c0f95f10a6fd676e5ea98097d93e70d20db52c926db2b0
 
 jobs:
   build:
